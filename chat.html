@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>认知重构平台 · 对话</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { display: flex; flex-direction: column; background: var(--bg); }
+
+    /* ===== 顶部导航 ===== */
+    .top-nav {
+      height: 56px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      flex-shrink: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+    .nav-left { display: flex; align-items: center; gap: 12px; }
+    .nav-logo { display: flex; align-items: center; gap: 10px; }
+    .nav-logo .logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-logo .logo-icon i { color: #fff; font-size: 0.9rem; }
+    .nav-logo h1 { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+    .sidebar-toggle { display: none; }
+    .nav-right { display: flex; align-items: center; gap: 8px; }
+    .nav-avatar-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 10px;
+      border-radius: 100px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .nav-avatar-btn:hover { background: var(--bg-sidebar); }
+    .nav-username { font-size: 0.88rem; font-weight: 500; color: var(--text-primary); }
+
+    /* ===== 主布局 ===== */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ===== 左侧边栏 ===== */
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: transform var(--transition);
+    }
+    .sidebar-header {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .sidebar-title { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+    .new-chat-btn {
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all var(--transition);
+      font-size: 0.85rem;
+    }
+    .new-chat-btn:hover { background: var(--primary-dark); transform: scale(1.05); }
+    .chat-list { flex: 1; overflow-y: auto; padding: 8px; }
+    .chat-item {
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+      margin-bottom: 2px;
+      position: relative;
+    }
+    .chat-item:hover { background: rgba(255,255,255,0.7); }
+    .chat-item.active { background: var(--bg-card); box-shadow: var(--shadow-sm); }
+    .chat-item-title {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chat-item.pinned .chat-item-title::before { content: '📌'; font-size: 0.75rem; }
+    .chat-item-meta { font-size: 0.78rem; color: var(--text-muted); margin-top: 3px; display: flex; justify-content: space-between; }
+    .chat-item-actions {
+      position: absolute;
+      right: 8px; top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      gap: 4px;
+    }
+    .chat-item:hover .chat-item-actions { display: flex; }
+    .chat-item-actions button {
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      background: var(--bg-sidebar);
+      color: var(--text-muted);
+      border: none;
+      cursor: pointer;
+      font-size: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all var(--transition);
+    }
+    .chat-item-actions button:hover { background: var(--border); color: var(--text-primary); }
+    .chat-item-actions .pin-btn.pinned { color: var(--primary); }
+
+    /* ===== 主对话区 ===== */
+    .chat-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .chat-header {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-card);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .chat-header-info { min-width: 0; }
+    .chat-header-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chat-header-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+    .chat-header-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    /* 欢迎屏 */
+    .welcome-screen {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .welcome-icon {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, rgba(59,130,184,0.1), rgba(76,175,138,0.1));
+      border-radius: 24px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 24px;
+      font-size: 2rem;
+    }
+    .welcome-screen h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 10px; }
+    .welcome-screen p { color: var(--text-secondary); font-size: 0.93rem; max-width: 360px; line-height: 1.7; }
+    .cbt-steps {
+      display: flex;
+      gap: 10px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .cbt-step {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      text-align: left;
+      width: 140px;
+      box-shadow: var(--shadow-sm);
+    }
+    .cbt-step .step-num { font-size: 0.75rem; color: var(--primary); font-weight: 700; margin-bottom: 4px; }
+    .cbt-step .step-name { font-size: 0.88rem; font-weight: 600; }
+    .cbt-step .step-desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+
+    /* 消息气泡 */
+    .message-group { margin-bottom: 16px; }
+    .message {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      animation: slideUp 0.25s ease;
+    }
+    .message.user { flex-direction: row-reverse; }
+    .message-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .message-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .message-avatar .avatar-placeholder { width: 100%; height: 100%; font-size: 0.75rem; }
+    .message-content { max-width: 75%; min-width: 60px; }
+    .bubble {
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      font-size: 0.93rem;
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .message.ai .bubble {
+      background: var(--ai-bubble);
+      color: var(--text-primary);
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-sm);
+      border-bottom-left-radius: 4px;
+    }
+    .message.user .bubble {
+      background: var(--user-bubble);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .message-meta {
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      display: flex;
+      gap: 8px;
+    }
+    .message.user .message-meta { justify-content: flex-end; }
+    /* Typing indicator */
+    .typing-message .bubble { padding: 8px 16px; }
+
+    /* ===== 输入区 ===== */
+    .input-area {
+      padding: 16px 20px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .input-wrap {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      background: var(--bg-sidebar);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 10px 14px;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .input-wrap:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59,130,184,0.1);
+    }
+    #message-input {
+      flex: 1;
+      border: none;
+      background: none;
+      resize: none;
+      outline: none;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      line-height: 1.5;
+      max-height: 160px;
+      min-height: 24px;
+    }
+    #message-input::placeholder { color: var(--text-muted); }
+    .send-btn {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all var(--transition);
+      flex-shrink: 0;
+    }
+    .send-btn:hover { background: var(--primary-dark); transform: scale(1.05); }
+    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .input-hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 8px; text-align: center; }
+
+    /* ===== 右侧面板 ===== */
+    .right-panel {
+      width: 240px;
+      flex-shrink: 0;
+      background: var(--bg-card);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .user-card {
+      text-align: center;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border-light);
+      margin-bottom: 16px;
+    }
+    .user-card-avatar { position: relative; display: inline-block; margin-bottom: 10px; }
+    .user-card-avatar .avatar-lg { border: 3px solid var(--bg-sidebar); }
+    .user-card-name { font-weight: 600; font-size: 0.95rem; }
+    .user-card-meta { font-size: 0.82rem; color: var(--text-muted); margin-top: 3px; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .stat-card {
+      background: var(--bg-sidebar);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      text-align: center;
+    }
+    .stat-value { font-size: 1.3rem; font-weight: 700; color: var(--primary); }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .panel-section { margin-bottom: 16px; }
+    .panel-section-title { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .panel-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      transition: all var(--transition);
+    }
+    .panel-menu-item:hover { background: var(--bg-sidebar); color: var(--text-primary); }
+    .panel-menu-item i { width: 16px; text-align: center; }
+    .panel-menu-item.danger { color: #EF4444; }
+    .panel-menu-item.danger:hover { background: #FEF2F2; }
+
+    /* ===== Dropdown ===== */
+    .dropdown { position: relative; }
+    .dropdown-menu {
+      position: absolute;
+      right: 0; top: calc(100% + 6px);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      min-width: 160px;
+      padding: 6px;
+      z-index: 200;
+      display: none;
+    }
+    .dropdown-menu.show { display: block; animation: fadeIn 0.15s ease; }
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .dropdown-item:hover { background: var(--bg-sidebar); color: var(--text-primary); }
+    .dropdown-item.danger { color: #EF4444; }
+    .dropdown-item.danger:hover { background: #FEF2F2; }
+    .dropdown-divider { height: 1px; background: var(--border-light); margin: 4px 0; }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 1100px) {
+      .right-panel { display: none; }
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: 0; top: 56px; bottom: 0;
+        z-index: 300;
+        transform: translateX(-100%);
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-toggle { display: flex !important; }
+    }
+
+    /* ===== 导出/清空对话框 ===== */
+    .confirm-dialog-text { color: var(--text-secondary); font-size: 0.92rem; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <div class="overlay" id="overlay"></div>
+
+  <!-- 顶部导航 -->
+  <nav class="top-nav">
+    <div class="nav-left">
+      <button class="btn btn-ghost btn-icon sidebar-toggle" id="sidebar-toggle" style="display:none">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="nav-logo">
+        <div class="logo-icon"><i class="fas fa-brain"></i></div>
+        <h1>认知重构平台</h1>
+      </div>
+    </div>
+    <div class="nav-right">
+      <a href="profile.html" class="btn btn-ghost btn-sm">
+        <i class="fas fa-user"></i>
+        <span class="desktop-only">个人档案</span>
+      </a>
+      <div class="nav-avatar-btn" id="nav-user-btn">
+        <div class="avatar-sm avatar-placeholder" id="nav-avatar">U</div>
+        <span class="nav-username desktop-only" id="nav-username">用户</span>
+        <i class="fas fa-chevron-down" style="font-size:0.7rem;color:var(--text-muted)"></i>
+      </div>
+      <div class="dropdown-menu" id="user-dropdown">
+        <a href="profile.html" class="dropdown-item"><i class="fas fa-user"></i>个人档案</a>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item danger" id="logout-btn"><i class="fas fa-sign-out-alt"></i>退出登录</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主布局 -->
+  <div class="main-layout">
+    <!-- 左侧对话列表 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">对话</span>
+        <button class="new-chat-btn" id="new-chat-btn" title="新建对话">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+      <div class="chat-list" id="chat-list">
+        <div class="empty-state" style="padding:40px 20px">
+          <i class="fas fa-comments"></i>
+          <p>暂无对话</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 中间对话区 -->
+    <main class="chat-main">
+      <!-- 对话头部 -->
+      <div class="chat-header" id="chat-header" style="display:none">
+        <div class="chat-header-info">
+          <div class="chat-header-title" id="chat-title">新对话</div>
+          <div class="chat-header-meta" id="chat-meta">0 条消息</div>
+        </div>
+        <div class="chat-header-actions">
+          <button class="btn btn-ghost btn-sm" id="export-btn" title="导出对话">
+            <i class="fas fa-download"></i>
+            <span class="desktop-only">导出</span>
+          </button>
+          <div class="dropdown">
+            <button class="btn btn-ghost btn-icon" id="chat-more-btn">
+              <i class="fas fa-ellipsis-h"></i>
+            </button>
+            <div class="dropdown-menu" id="chat-dropdown">
+              <div class="dropdown-item" id="pin-chat-btn"><i class="fas fa-thumbtack"></i>置顶对话</div>
+              <div class="dropdown-item" id="rename-chat-btn"><i class="fas fa-edit"></i>重命名</div>
+              <div class="dropdown-divider"></div>
+              <div class="dropdown-item danger" id="clear-chat-btn"><i class="fas fa-trash-alt"></i>清空对话</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 消息区 -->
+      <div class="messages-area" id="messages-area">
+        <!-- 欢迎屏 -->
+        <div class="welcome-screen" id="welcome-screen">
+          <div class="welcome-icon">🧠</div>
+          <h2>欢迎使用认知重构平台</h2>
+          <p>通过AI引导的认知行为疗法（CBT），帮助您识别和重构负面思维模式，促进心理健康。</p>
+          <div class="cbt-steps">
+            <div class="cbt-step">
+              <div class="step-num">STEP 1</div>
+              <div class="step-name">识别情境</div>
+              <div class="step-desc">描述触发负面情绪的具体事件</div>
+            </div>
+            <div class="cbt-step">
+              <div class="step-num">STEP 2</div>
+              <div class="step-name">认识情绪</div>
+              <div class="step-desc">识别并量化情绪强度</div>
+            </div>
+            <div class="cbt-step">
+              <div class="step-num">STEP 3</div>
+              <div class="step-name">觉察想法</div>
+              <div class="step-desc">发现背后的自动化思维</div>
+            </div>
+            <div class="cbt-step">
+              <div class="step-num">STEP 4</div>
+              <div class="step-name">检验证据</div>
+              <div class="step-desc">理性评估想法的合理性</div>
+            </div>
+            <div class="cbt-step">
+              <div class="step-num">STEP 5</div>
+              <div class="step-name">重构认知</div>
+              <div class="step-desc">建立更平衡的新思维</div>
+            </div>
+          </div>
+        </div>
+        <div id="messages-list"></div>
+      </div>
+
+      <!-- 输入区 -->
+      <div class="input-area">
+        <div class="input-wrap">
+          <textarea
+            id="message-input"
+            placeholder="描述您正在经历的情境或感受..."
+            rows="1"
+          ></textarea>
+          <button class="send-btn" id="send-btn" title="发送 (Enter)">
+            <i class="fas fa-paper-plane"></i>
+          </button>
+        </div>
+        <p class="input-hint">按 Enter 发送 · Shift+Enter 换行 · 所有对话仅用于学术研究</p>
+      </div>
+    </main>
+
+    <!-- 右侧面板 -->
+    <aside class="right-panel" id="right-panel">
+      <div class="user-card">
+        <div class="user-card-avatar">
+          <div class="avatar-lg avatar-placeholder" id="panel-avatar">U</div>
+        </div>
+        <div class="user-card-name" id="panel-username">加载中...</div>
+        <div class="user-card-meta" id="panel-meta">心理健康研究参与者</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-convs">0</div>
+          <div class="stat-label">对话数</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-msgs">0</div>
+          <div class="stat-label">消息数</div>
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-title">功能</div>
+        <a href="profile.html" class="panel-menu-item">
+          <i class="fas fa-user-edit"></i> 编辑档案
+        </a>
+        <div class="panel-menu-item" id="new-chat-panel-btn">
+          <i class="fas fa-plus-circle"></i> 新建对话
+        </div>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-section-title">CBT 进程</div>
+        <div id="cbt-progress" style="font-size:0.85rem;color:var(--text-secondary);padding:8px 10px;background:var(--bg-sidebar);border-radius:var(--radius-sm)">
+          开始对话后，这里将显示认知重构进程。
+        </div>
+      </div>
+
+      <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border-light)">
+        <div class="panel-menu-item danger" id="logout-panel-btn">
+          <i class="fas fa-sign-out-alt"></i> 退出登录
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 重命名 Modal -->
+  <div class="overlay" id="rename-overlay"></div>
+  <div class="modal" id="rename-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">重命名对话</span>
+        <button class="modal-close" id="rename-close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">对话标题</label>
+          <input type="text" id="rename-input" class="form-control" placeholder="输入新标题" maxlength="50">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="rename-cancel">取消</button>
+        <button class="btn btn-primary" id="rename-confirm">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 清空确认 Modal -->
+  <div class="overlay" id="clear-overlay"></div>
+  <div class="modal" id="clear-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span class="modal-title">清空对话</span>
+        <button class="modal-close" id="clear-close"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="confirm-dialog-text">确定要清空此对话中的所有消息吗？<br>此操作不可恢复，历史记录将被删除。</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="clear-cancel">取消</button>
+        <button class="btn btn-danger" id="clear-confirm">清空</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script src="js/chat.js"></script>
+</body>
+</html>

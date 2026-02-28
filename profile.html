@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>认知重构平台 · 个人档案</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background: var(--bg); min-height: 100vh; }
+    .page-header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+    .back-btn {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition);
+    }
+    .back-btn:hover { background: var(--bg-sidebar); color: var(--text-primary); }
+    .page-title { font-size: 1.05rem; font-weight: 700; }
+    .profile-container { max-width: 800px; margin: 0 auto; padding: 32px 20px; }
+
+    /* 档案卡片 */
+    .profile-hero {
+      background: linear-gradient(135deg, #EEF6FF, #E8F5F0);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(59,130,184,0.1);
+      box-shadow: var(--shadow-sm);
+    }
+    .avatar-upload-zone {
+      position: relative;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .avatar-upload-zone .avatar-xl {
+      border: 3px solid #fff;
+      box-shadow: var(--shadow-md);
+    }
+    .avatar-upload-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity var(--transition);
+    }
+    .avatar-upload-zone:hover .avatar-upload-overlay { opacity: 1; }
+    .avatar-upload-overlay i { color: #fff; font-size: 1.2rem; }
+    #avatar-file-input { display: none; }
+    .profile-hero-info h2 { font-size: 1.4rem; font-weight: 700; }
+    .profile-hero-info p { color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px; }
+    .profile-badges { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+    /* 统计 */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .stat-box {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border-light);
+    }
+    .stat-box .val { font-size: 1.8rem; font-weight: 700; color: var(--primary); }
+    .stat-box .lbl { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+    @media (max-width: 600px) {
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .profile-hero { flex-direction: column; text-align: center; }
+      .profile-badges { justify-content: center; }
+    }
+
+    /* 表单卡片 */
+    .form-card { background: var(--bg-card); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border: 1px solid var(--border-light); margin-bottom: 20px; overflow: hidden; }
+    .form-card-header { padding: 18px 24px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 10px; }
+    .form-card-header i { color: var(--primary); }
+    .form-card-header h3 { font-size: 1rem; font-weight: 600; }
+    .form-card-body { padding: 24px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+    .save-row { display: flex; justify-content: flex-end; gap: 10px; padding-top: 8px; }
+
+    /* 密码修改 */
+    .password-strength {
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      margin-top: 6px;
+      overflow: hidden;
+    }
+    .password-strength-bar {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s, background 0.3s;
+      width: 0;
+    }
+    .strength-text { font-size: 0.78rem; margin-top: 4px; }
+
+    /* 数据导出区 */
+    .data-export-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .export-item {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .export-item .title { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .export-item .desc { font-size: 0.8rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+
+  <div class="page-header">
+    <a href="chat.html" class="back-btn">
+      <i class="fas fa-arrow-left"></i> 返回对话
+    </a>
+    <span class="page-title">个人档案</span>
+  </div>
+
+  <div class="profile-container">
+    <!-- 用户简介 Hero -->
+    <div class="profile-hero">
+      <div class="avatar-upload-zone" id="avatar-upload-zone" title="点击上传头像">
+        <div class="avatar-xl avatar-placeholder" id="profile-avatar" style="font-size:1.8rem">U</div>
+        <div class="avatar-upload-overlay"><i class="fas fa-camera"></i></div>
+        <input type="file" id="avatar-file-input" accept="image/*">
+      </div>
+      <div class="profile-hero-info">
+        <h2 id="hero-username">加载中...</h2>
+        <p id="hero-email">未设置邮箱</p>
+        <div class="profile-badges">
+          <span class="badge badge-primary" id="badge-join">研究参与者</span>
+          <span class="badge badge-accent" id="badge-msgs">0 条对话</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 统计数据 -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="val" id="s-convs">0</div>
+        <div class="lbl">总对话数</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="s-msgs">0</div>
+        <div class="lbl">总消息数</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="s-days">0</div>
+        <div class="lbl">参与天数</div>
+      </div>
+      <div class="stat-box">
+        <div class="val" id="s-avg">0s</div>
+        <div class="lbl">平均响应</div>
+      </div>
+    </div>
+
+    <!-- 基本信息 -->
+    <div class="form-card">
+      <div class="form-card-header">
+        <i class="fas fa-id-card"></i>
+        <h3>基本信息</h3>
+      </div>
+      <div class="form-card-body">
+        <form id="profile-form" novalidate>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">昵称</label>
+              <input type="text" id="p-nickname" class="form-control" placeholder="请输入昵称" maxlength="30">
+            </div>
+            <div class="form-group">
+              <label class="form-label">年龄</label>
+              <input type="number" id="p-age" class="form-control" placeholder="岁" min="1" max="120">
+            </div>
+            <div class="form-group">
+              <label class="form-label">性别</label>
+              <select id="p-gender" class="form-control">
+                <option value="">请选择</option>
+                <option value="male">男性</option>
+                <option value="female">女性</option>
+                <option value="non-binary">非二元性别</option>
+                <option value="prefer-not">不愿透露</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">教育背景</label>
+              <select id="p-education" class="form-control">
+                <option value="">请选择</option>
+                <option value="high-school">高中及以下</option>
+                <option value="college">大专</option>
+                <option value="bachelor">本科</option>
+                <option value="master">硕士</option>
+                <option value="phd">博士及以上</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">职业</label>
+              <input type="text" id="p-occupation" class="form-control" placeholder="请输入职业" maxlength="50">
+            </div>
+            <div class="form-group">
+              <label class="form-label">邮箱（用于找回密码）</label>
+              <input type="email" id="p-email" class="form-control" placeholder="your@email.com">
+              <span class="form-error" id="p-email-err"></span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">个人简介</label>
+            <textarea id="p-bio" class="form-control" placeholder="简单介绍一下自己..." maxlength="300" rows="3"></textarea>
+          </div>
+          <div class="save-row">
+            <button type="submit" class="btn btn-primary" id="save-profile-btn">
+              <i class="fas fa-save"></i> 保存信息
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 修改密码 -->
+    <div class="form-card">
+      <div class="form-card-header">
+        <i class="fas fa-key"></i>
+        <h3>修改密码</h3>
+      </div>
+      <div class="form-card-body">
+        <form id="password-form" novalidate>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">当前密码</label>
+              <div style="position:relative">
+                <input type="password" id="old-password" class="form-control" placeholder="请输入当前密码">
+                <button type="button" class="eye-toggle" data-target="old-password" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted)">
+                  <i class="fas fa-eye-slash"></i>
+                </button>
+              </div>
+              <span class="form-error" id="old-pw-err"></span>
+            </div>
+            <div></div>
+            <div class="form-group">
+              <label class="form-label">新密码</label>
+              <div style="position:relative">
+                <input type="password" id="new-password" class="form-control" placeholder="至少8位">
+                <button type="button" class="eye-toggle" data-target="new-password" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted)">
+                  <i class="fas fa-eye-slash"></i>
+                </button>
+              </div>
+              <div class="password-strength">
+                <div class="password-strength-bar" id="pw-strength-bar"></div>
+              </div>
+              <span class="strength-text" id="pw-strength-text"></span>
+              <span class="form-error" id="new-pw-err"></span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">确认新密码</label>
+              <div style="position:relative">
+                <input type="password" id="confirm-password" class="form-control" placeholder="再次输入新密码">
+                <button type="button" class="eye-toggle" data-target="confirm-password" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted)">
+                  <i class="fas fa-eye-slash"></i>
+                </button>
+              </div>
+              <span class="form-error" id="confirm-pw-err"></span>
+            </div>
+          </div>
+          <div class="save-row">
+            <button type="submit" class="btn btn-primary" id="save-password-btn">
+              <i class="fas fa-lock"></i> 修改密码
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 数据导出 -->
+    <div class="form-card">
+      <div class="form-card-header">
+        <i class="fas fa-download"></i>
+        <h3>数据导出</h3>
+      </div>
+      <div class="form-card-body">
+        <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:16px;">您可以导出个人对话数据用于个人存档。所有导出仅包含您本人的数据。</p>
+        <div class="data-export-grid">
+          <div class="export-item">
+            <div class="title"><i class="fas fa-comments" style="color:var(--primary)"></i>对话记录</div>
+            <div class="desc">导出所有对话内容（JSON格式）</div>
+            <button class="btn btn-secondary btn-sm" id="export-conversations-btn" style="margin-top:4px">
+              <i class="fas fa-file-export"></i> 导出
+            </button>
+          </div>
+          <div class="export-item">
+            <div class="title"><i class="fas fa-chart-bar" style="color:var(--accent)"></i>使用统计</div>
+            <div class="desc">导出使用统计数据（CSV格式）</div>
+            <button class="btn btn-secondary btn-sm" id="export-stats-btn" style="margin-top:4px">
+              <i class="fas fa-file-csv"></i> 导出
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 账号操作 -->
+    <div class="form-card" style="margin-bottom:40px">
+      <div class="form-card-header">
+        <i class="fas fa-cog"></i>
+        <h3>账号操作</h3>
+      </div>
+      <div class="form-card-body" style="display:flex;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-secondary" id="logout-btn2">
+          <i class="fas fa-sign-out-alt"></i> 退出登录
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>
